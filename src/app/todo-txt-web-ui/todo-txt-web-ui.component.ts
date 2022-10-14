@@ -182,8 +182,9 @@ export class TodoTxtWebUiComponent {
     return tasks;
   }
 
+  // FIXME bootstrap classes text-* that block cursor movement
   getMarkupForTask(text: string, id: string): SafeHtml {
-    console.log('getMarkupForTask', text, id)
+    // console.log('getMarkupForTask', text, id)
     const task = this.todo.getTask(id);
     // make html compatible
     text = TodoTxtUtils.htmlEncode(text);
@@ -195,27 +196,22 @@ export class TodoTxtWebUiComponent {
       '<span class="' + priCls + '"><b>' + task.priority + '</b></span>'
     );
 
-    // FIXME find by project name, not regex
     // markup projects
     let projects: string[] = task.projects;
     projects.forEach((project) => {
-      var regex = new RegExp(
-        project.replace(/\+/g, '\\+') + '(?![0-9A-Za-z])',
-        'g'
-      );
+      const prj = `+${project}`;
       text = text.replace(
-        regex,
-        '<span class="text-muted"><b><i>' + project + '</i></b></span>'
+        prj, 
+        '<span class="text-muted"><b><i>' + prj + '</i></b></span>'
       );
     });
 
-    // FIXME find by context name, not regex
     // markup contexts
     let contexts: string[] = task.contexts;
-    contexts.forEach((ctx) => {
-      var regex = new RegExp(ctx + '(?![0-9A-Za-z])', 'g');
+    contexts.forEach((context) => {
+      const ctx = `@${context}`;
       text = text.replace(
-        regex,
+        ctx,
         '<span class="text-muted"><b><i>' + ctx + '</i></b></span>'
       );
     });
