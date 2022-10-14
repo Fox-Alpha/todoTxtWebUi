@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { TodoTxtTask } from './todo-txt-task';
-import { guid } from './todo-txt-utils';
+import { ParsedTodoTxtTask } from './todo-txt-task';
 
 const parser = require('todotxt-parser');
 
 @Injectable()
 export class AppParser {
-  parseMany(...texts: string[]): TodoTxtTask[] {
-    const tasks: TodoTxtTask[] = [];
+  parseMany(...texts: string[]): ParsedTodoTxtTask[] {
+    const tasks: ParsedTodoTxtTask[] = [];
     if (texts) {
       for (let i = 0; i < texts.length; i++) {
         tasks.push(this.parse(texts[i]));
@@ -16,10 +15,9 @@ export class AppParser {
     return tasks;
   }
 
-  parse(text: string): TodoTxtTask {
+  parse(text: string): ParsedTodoTxtTask {
     const [result] = parser.relaxed(text);
     return {
-      id: guid(),
       text,
       completedDate: result.dateCompleted,
       createdDate: result.dateCreated,

@@ -1,27 +1,55 @@
 import { TodoTxtTask } from "../tasks/todo-txt-task";
 import { TodoTxtConfig } from "./todo-txt-config";
-import { TodoTextCache } from "./todo-txt-cache";
 import { Injectable } from "@angular/core";
+import { TodoTxtTaskBackend } from "../tasks/todo-txt-task-backend";
 
 @Injectable()
 export class TodoTxtVault {
-  private tasks: Map<string, TodoTxtTask> = new Map<string, TodoTxtTask>();
+  private tasks = new Map<number, TodoTxtTask>();
   private config: TodoTxtConfig = { showClosed: false };
 
-  constructor() {
-    this.load();
-  }
+  constructor(private api: TodoTxtTaskBackend) { }
 
-  addTasks(...tasks: TodoTxtTask[]): void {
-    if (tasks) {
+  async loadAll() {
+    try {
+      // FIXME config load
+      const tasks = await this.api.loadTasks();
+      this.tasks.clear();
       tasks.forEach((task) => {
         this.tasks.set(task.id, task);
       });
-      this.persist();
+    } catch (e) {
+      alert('WARNING: unable to load tasks')
+      console.error(
+        `TodoTxt unable to load cache from localStorage due to: ${e}`
+      );
     }
   }
 
-  getTask(taskId: string): TodoTxtTask {
+  async createTasks(texts: string[]) {
+    if (texts) {
+      const tasks = await this.api.createTasks(texts);
+      tasks.forEach((task) => {
+        this.tasks.set(task.id, task);
+      });
+      return tasks;
+    }
+    throw new Error('no text given for task saving');
+  }
+
+  async appendTask(text: string) {
+    const task = await this.api.appendTask(text);
+    this.tasks.set(task.id, task);
+    return task;
+  }
+
+  async updateTask(id: number, text: string) {
+    const task = await this.api.updateTask(id, text);
+    this.tasks.set(id, task);
+    return task;
+  }
+
+  getTask(taskId: number): TodoTxtTask {
     if (this.tasks.has(taskId)) {
       return this.tasks.get(taskId);
     }
@@ -36,69 +64,23 @@ export class TodoTxtVault {
     return list;
   }
 
-  removeTask(taskId: string): boolean {
-    let found: boolean = false;
+  async removeTask(taskId: number) {
     if (this.tasks.has(taskId)) {
       this.tasks.delete(taskId);
-      found = true;
     }
-
-    this.persist();
-
-    return found;
   }
 
-  removeAllTasks(): void {
-    this.tasks = new Map<string, TodoTxtTask>();
-
-    this.persist();
+  async removeAllTasks() {
+    this.tasks = new Map<number, TodoTxtTask>();
+    await this.api.removeTasks();
   }
 
   getConfig(): TodoTxtConfig {
     return this.config;
   }
 
-  setConfig(cfg: TodoTxtConfig): void {
+  async setConfig(cfg: TodoTxtConfig) {
     this.config = cfg;
-
-    this.persist();
-  }
-
-  private persist(): void {
-    try {
-      let cache: TodoTextCache = {
-        tasks: Array.from(this.tasks.values()),
-        config: this.config,
-      };
-      localStorage.setItem('todo-txt', JSON.stringify(cache));
-    } catch (e) {
-      alert(
-        'WARNING: unable to store tasks; save tasks before closing the browser or they will be lost!'
-      );
-      console.error(
-        `TodoTxt unable to cache data in localStorage due to: ${e}`
-      );
-    }
-  }
-
-  private load(): void {
-    try {
-      let persistance: string = localStorage.getItem('todo-txt');
-      if (persistance) {
-        let cache: TodoTextCache = JSON.parse(persistance) as TodoTextCache;
-        if (cache.tasks) {
-          this.tasks.clear();
-          for (var i = 0; i < cache.tasks.length; i++) {
-            this.tasks.set(cache.tasks[i].id, cache.tasks[i]);
-          }
-          this.config = cache.config;
-        }
-      }
-    } catch (e) {
-      alert('WARNING: unable to load tasks')
-      console.error(
-        `TodoTxt unable to load cache from localStorage due to: ${e}`
-      );
-    }
+    // FIXME save config on backend
   }
 }

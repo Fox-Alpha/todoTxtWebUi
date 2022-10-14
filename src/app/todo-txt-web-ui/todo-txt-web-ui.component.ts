@@ -1,20 +1,19 @@
-import { ChangeDetectorRef, Component, HostListener } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnInit } from '@angular/core';
 import { DomSanitizer, SafeHtml, SafeUrl } from '@angular/platform-browser';
 import { TodoTxtUtils } from './helpers/todo-txt-utils';
 import { TodoTxtConfig } from './storage/todo-txt-config';
 import { TodoTxtTask } from './tasks/todo-txt-task';
-import { TodoTxtTaskParser } from './tasks/todo-txt-task-parser';
-import { TodoTxt } from './todo-txt';
 import { saveAs } from 'file-saver';
 import { TodoTxtAttributes } from './tasks/todo-txt-attributes';
 import { FileData } from './helpers/file-data';
+import { TodoTxtTaskService } from './tasks/todo-txt-task-service';
 
 @Component({
   selector: 'app-todo-txt-web-ui',
   templateUrl: './todo-txt-web-ui.component.html',
   styleUrls: ['./todo-txt-web-ui.component.css'],
 })
-export class TodoTxtWebUiComponent {
+export class TodoTxtWebUiComponent implements OnInit {
   requiredFileType: string = '.txt';
   fileName: string;
   downloadFileName: string;
@@ -22,24 +21,28 @@ export class TodoTxtWebUiComponent {
   showClosed: boolean;
   downloadUrl: SafeUrl;
   filterStr: string;
-  editingTaskId: string;
+  editingTaskId: number;
   isAddingNew: boolean;
 
   constructor(
     private sanitiser: DomSanitizer,
     private changeDetector: ChangeDetectorRef,
-    private todo: TodoTxt,
+    private todo: TodoTxtTaskService,
   ) {
     this.isDirty = false;
     this.showClosed = this.todo.getConfig().showClosed;
     this.downloadFileName = 'todo.txt';
   }
 
+  async ngOnInit() {
+    await this.todo.init();
+  }
+
   async toggleShowClosed(): Promise<void> {
     let cfg: TodoTxtConfig = this.todo.getConfig();
     cfg.showClosed = !cfg.showClosed;
     this.showClosed = cfg.showClosed;
-    this.todo.setConfig(cfg);
+    await this.todo.setConfig(cfg);
   }
 
   async click_OpenToDoFile(): Promise<void> {
@@ -55,7 +58,7 @@ export class TodoTxtWebUiComponent {
     });
     if (data) {
       this.fileName = data.name;
-      await this.todo.addTasks(data.text?.split('\n') || []);
+      await this.todo.createTasks(data.text?.split('\n') || []);
     }
   }
 
@@ -65,20 +68,20 @@ export class TodoTxtWebUiComponent {
       if (files && files.length > 0) {
         let file: File = files[0];
         if (file) {
-          this.todo.removeAllTasks();
+          await this.todo.removeAllTasks();
           this.fileName = file.name;
           let text: string = await file.text();
-          await this.todo.addTasks(text.split('\n'));
+          await this.todo.createTasks(text.split('\n'));
         }
       }
     }
   }
 
-  async click_AddTask(): Promise<string> {
+  async click_AddTask(): Promise<number> {
     this.isAddingNew = true;
-    const t = await this.todo.addTask('');
     this.isDirty = true;
-    return await this.click_StartEditTask(t.id);
+    const task = await this.todo.appendTask('');
+    return await this.click_StartEditTask(task.id);
   }
 
   async click_SaveTasks(): Promise<void> {
@@ -113,21 +116,21 @@ export class TodoTxtWebUiComponent {
     event.target.value = undefined;
   }
 
-  async click_MarkComplete(id: string): Promise<void> {
-    this.todo.closeTask(id);
+  async click_MarkComplete(id: number): Promise<void> {
+    await this.todo.closeTask(id);
   }
 
-  async click_MarkActive(id: string): Promise<void> {
-    this.todo.activateTask(id);
+  async click_MarkActive(id: number): Promise<void> {
+    await this.todo.activateTask(id);
   }
 
-  async click_StartEditTask(id: string): Promise<string> {
+  async click_StartEditTask(id: number): Promise<number> {
     this.editingTaskId = id;
     this.changeDetector.detectChanges();
     return await this.setFocus(id);
   }
 
-  async setFocus(id: string): Promise<string> {
+  async setFocus(id: number): Promise<number> {
     let el: HTMLElement = document.getElementById(`textarea_${id}`);
     if (el) {
       console.info(`setting focus on element 'textarea_${id}'`);
@@ -138,7 +141,7 @@ export class TodoTxtWebUiComponent {
     }
   }
 
-  async click_SaveTaskEdit(id: string): Promise<string> {
+  async click_SaveTaskEdit(id: number): Promise<string> {
     let text: string = document.querySelector<HTMLDivElement>(
       `#textarea_${id}`
     ).innerText;
@@ -151,13 +154,13 @@ export class TodoTxtWebUiComponent {
   @HostListener('keydown.esc')
   async click_CancelTaskEdit(): Promise<void> {
     if (this.isAddingNew) {
-      this.click_DeleteTask(this.editingTaskId);
+      await this.click_DeleteTask(this.editingTaskId);
     }
     this.doneEditing();
   }
 
-  async click_DeleteTask(id: string): Promise<void> {
-    this.todo.removeTask(id);
+  async click_DeleteTask(id: number): Promise<void> {
+    await this.todo.removeTask(id);
     this.isDirty = true;
     this.doneEditing();
   }
@@ -183,7 +186,7 @@ export class TodoTxtWebUiComponent {
   }
 
   // FIXME bootstrap classes text-* that block cursor movement
-  getMarkupForTask(text: string, id: string): SafeHtml {
+  getMarkupForTask(text: string, id: number): SafeHtml {
     // console.log('getMarkupForTask', text, id)
     const task = this.todo.getTask(id);
     // make html compatible
