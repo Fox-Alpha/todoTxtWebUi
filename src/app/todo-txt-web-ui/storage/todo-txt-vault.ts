@@ -5,7 +5,7 @@ import { TodoTxtTaskBackend } from "../tasks/todo-txt-task-backend";
 
 @Injectable()
 export class TodoTxtVault {
-  private tasks = new Map<number, TodoTxtTask>();
+  private tasks: TodoTxtTask[] = [];
   private config: TodoTxtConfig = { showClosed: false };
 
   constructor(private api: TodoTxtTaskBackend) { }
@@ -13,11 +13,7 @@ export class TodoTxtVault {
   async loadAll() {
     try {
       // FIXME config load
-      const tasks = await this.api.loadTasks();
-      this.tasks.clear();
-      tasks.forEach((task) => {
-        this.tasks.set(task.id, task);
-      });
+      this.tasks = await this.api.loadTasks();
     } catch (e) {
       alert('WARNING: unable to load tasks')
       console.error(
@@ -28,32 +24,29 @@ export class TodoTxtVault {
 
   async createTasks(texts: string[]) {
     if (texts) {
-      const tasks = await this.api.createTasks(texts);
-      tasks.forEach((task) => {
-        this.tasks.set(task.id, task);
-      });
-      return tasks;
+      this.tasks = await this.api.createTasks(texts);
+      return this.tasks;
     }
     throw new Error('no text given for task saving');
   }
 
   async appendTask(text: string) {
     const task = await this.api.appendTask(text);
-    this.tasks.set(task.id, task);
+    this.tasks.push(task);
     return task;
   }
 
   async updateTask(id: number, text: string) {
     const task = await this.api.updateTask(id, text);
-    this.tasks.set(id, task);
+    this.tasks[id] = task;
     return task;
   }
 
-  getTask(taskId: number): TodoTxtTask {
-    if (this.tasks.has(taskId)) {
-      return this.tasks.get(taskId);
+  getTask(id: number): TodoTxtTask {
+    if (this.tasks[id] != null) {
+      return this.tasks[id];
     }
-    throw new Error(`no TodoTxtTask with ID of '${taskId}' could be found`);
+    throw new Error(`no TodoTxtTask with ID of '${id}' could be found`);
   }
 
   getAllTasks(): TodoTxtTask[] {
@@ -64,14 +57,20 @@ export class TodoTxtVault {
     return list;
   }
 
-  async removeTask(taskId: number) {
-    if (this.tasks.has(taskId)) {
-      this.tasks.delete(taskId);
+  async removeTask(id: number) {
+    if (this.tasks[id] != null) {
+      await this.api.removeTask(id);
+      this.tasks.splice(id, 1);
+      this.tasks.forEach((task, index) => {
+        task.id = index;
+      });
+      return;
     }
+    throw new Error(`no TodoTxtTask with ID of '${id}' could be found`);
   }
 
   async removeAllTasks() {
-    this.tasks = new Map<number, TodoTxtTask>();
+    this.tasks = [];
     await this.api.removeTasks();
   }
 

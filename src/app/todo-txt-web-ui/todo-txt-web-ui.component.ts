@@ -185,9 +185,7 @@ export class TodoTxtWebUiComponent implements OnInit {
     return tasks;
   }
 
-  // FIXME bootstrap classes text-* that block cursor movement
   getMarkupForTask(text: string, id: number): SafeHtml {
-    // console.log('getMarkupForTask', text, id)
     const task = this.todo.getTask(id);
     // make html compatible
     text = TodoTxtUtils.htmlEncode(text);
@@ -218,15 +216,6 @@ export class TodoTxtWebUiComponent implements OnInit {
         '<span class="text-muted"><b><i>' + ctx + '</i></b></span>'
       );
     });
-
-    // markup created date
-    let date: string = task.createdDate;
-    if (date) {
-      text = text.replace(
-        date,
-        '<span class="text-muted hidden-xs"><b><i>' + date + '</i></b></span>'
-      );
-    }
 
     return this.sanitiser.bypassSecurityTrustHtml(text);
   }

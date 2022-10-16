@@ -29,7 +29,7 @@ export class AppStore {
 
   createTasks(texts: string[]): TodoTxtTask[] {
     this.tasks = this.mapToTaskWithIds(...this.parser.parseMany(...texts));
-    console.log('createTasks', texts);
+    // console.log('createTasks', texts);
     this.flushToFile();
     return this.tasks;
   }
@@ -40,14 +40,14 @@ export class AppStore {
       id,
       ...this.parser.parse(text),
     });
-    console.log('appendTask', text);
+    // console.log('appendTask', text);
     this.flushToFile();
     return this.tasks[id];
   }
 
   updateTask(id: number, text: string): TodoTxtTask {
     const task = this.parser.parse(text);
-    console.log('updateTask', id, text, task);
+    // console.log('updateTask', id, text, task);
     this.tasks[id] = {
       id,
       ...task,
@@ -61,8 +61,17 @@ export class AppStore {
     this.flushToFile();
   }
 
+  removeTask(id: number) {
+    this.tasks.splice(id, 1);
+    this.tasks.forEach((task, index) => {
+      task.id = index;
+    });
+    // console.log('removeTask', this.tasks);
+    this.flushToFile();
+  }
+
   private flushToFile() {
-    console.log('flushToFile', this.tasks);
+    // console.log('flushToFile', this.tasks);
     fs.writeFileSync(
       this.fileLocation,
       this.tasks.map((task) => task.text).join('\n'),
