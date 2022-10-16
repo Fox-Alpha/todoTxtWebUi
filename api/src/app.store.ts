@@ -23,7 +23,7 @@ export class AppStore {
       .split('\n')
       .filter((line) => line.length !== 0);
     this.tasks = this.mapToTaskWithIds(...this.parser.parseMany(...lines));
-    console.log('loadTasks', this.tasks);
+    // console.log('loadTasks', this.tasks);
     return this.tasks;
   }
 

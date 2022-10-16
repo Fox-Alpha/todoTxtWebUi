@@ -145,6 +145,10 @@ export class TodoTxtWebUiComponent implements OnInit {
     let text: string = document.querySelector<HTMLDivElement>(
       `#textarea_${id}`
     ).innerText;
+    if (text.trim().length === 0) {
+      alert('cannot add empty task');
+      return;
+    }
     await this.todo.updateTask(id, text);
     this.isDirty = true;
     this.doneEditing();

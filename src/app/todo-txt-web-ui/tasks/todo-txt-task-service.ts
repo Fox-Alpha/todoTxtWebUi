@@ -37,11 +37,10 @@ export class TodoTxtTaskService {
         rStr += '.*(' + filter + ').*';
       }
       let tasks: TodoTxtTask[] = filteredTasks.filter(function (t) {
-        return t.text.match(new RegExp(rStr, 'i'));
+        return t.text.match(new RegExp(rStr, 'i')) || t.text.length === 0;
       });
       filteredTasks = tasks;
     }
-
     return filteredTasks;
   }
 
@@ -105,78 +104,51 @@ export class TodoTxtTaskService {
     if (task.isActive || this.vault.getConfig().showClosed) {
       // get the priority and add to global filter hashset
       if (task.priority) {
-        TodoTxtAttributes.priorities.add(task.priority);
+        TodoTxtAttributes.priorities.add(`(${task.priority})`);
       }
 
       // get each project and add to the global filter hashset
       task.projects.forEach((project) => {
         if (project) {
-          TodoTxtAttributes.projects.add(project);
+          TodoTxtAttributes.projects.add(`+${project}`);
         }
       });
 
       // get each context and add to the global filter hashset
       task.contexts.forEach((context) => {
         if (context) {
-          TodoTxtAttributes.contexts.add(context);
+          TodoTxtAttributes.contexts.add(`@${context}`);
         }
       });
     }
   }
 
-  private compareTasks(taskA: TodoTxtTask, taskB: TodoTxtTask) {
-    // function will allow sorting of tasks by the following
-    // criteria: (1) active vs. closed (2) priority (3) created date
-    // (4) completed date
-    const aActive = taskA.isActive;
-    const bActive = taskB.isActive;
-    const aPri = taskA.priority;
-    const bPri = taskB.priority;
-    const aCreated = taskA.createdDate;
-    const bCreated = taskB.createdDate;
-    const aCompleted = taskA.completedDate;
-    const bCompleted = taskB.completedDate;
+  private static arraysEqual(array1: any[], array2: any[]) {
+    return array1.length === array2.length && array1.every((value, index) => value === array2[index])
+  }
 
-    // (1) compare active vs. closed
+  private static compareArrays(array1: any[], array2: any[]) {
+    if (!array1[0]) return 1;
+    else if (!array2[0]) return -1;
+    return array1[0] < array2[0] ? -1 : 1;
+  }
+
+  private compareTasks(taskA: TodoTxtTask, taskB: TodoTxtTask) {
+    const { isActive: aActive, priority: aPri, projects: aProjects, contexts: aContexts } = taskA;
+    const { isActive: bActive, priority: bPri, projects: bProjects, contexts: bContexts } = taskB;
+
     if (aActive !== bActive) {
-      // prioritize active over closed
-      if (aActive) {
-        return -1;
-      } else {
-        return 1;
-      }
-    } else {
-      // (2) compare priority
-      if (aPri !== bPri) {
-        // order by priority, but favor having priority over not
-        if (!bPri || aPri < bPri) {
-          return -1;
-        } else if (!aPri || aPri > bPri) {
-          return 1;
-        }
-      } else {
-        // (3) compare created date
-        if (aCreated !== bCreated) {
-          // order by created date ascending (oldest ones first)
-          if (aCreated < bCreated) {
-            return -1;
-          } else {
-            return 1;
-          }
-        } else {
-          // (4) compare completed date
-          if (aCompleted !== bCompleted) {
-            // order by completed date descending (latest ones first)
-            if (aCompleted > bCompleted) {
-              return -1;
-            } else {
-              return 1;
-            }
-          }
-        }
-      }
+      return aActive ? -1 : 1;
+    } 
+    if (!TodoTxtTaskService.arraysEqual(aProjects, bProjects)) {
+      return TodoTxtTaskService.compareArrays(aProjects, bProjects);
     }
-    // objects are equivalent
+    if (!TodoTxtTaskService.arraysEqual(aContexts, bContexts)) {
+      return TodoTxtTaskService.compareArrays(aContexts, bContexts);
+    }
+    if (aPri !== bPri) {
+      return !bPri || aPri < bPri ? -1 : 1;
+    }
     return 0;
   }
 }
