@@ -2,10 +2,18 @@ import { TodoTxtTask } from "./todo-txt-task";
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from "@angular/core";
 import { environment } from "../../../environments/environment";
+import { TodoTxtFilter } from "./todo-txt-task-filter";
 
 @Injectable()
 export class TodoTxtTaskBackend {
     constructor(private http: HttpClient) { }
+
+    async parseFilter(filter: string) {
+      const result = await this.http.post(`${environment.apiHost}/v1/parseFilter`, {
+        filter
+      }).toPromise();
+      return result as TodoTxtFilter;
+    }
 
     async appendTask(text: string) {
       const result = await this.http.post(`${environment.apiHost}/v1/appendTask`, {

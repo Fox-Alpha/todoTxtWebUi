@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, Post, Query } from '@nestjs/common';
+import { AppParser } from './app.parser';
 import { AppStore } from './app.store';
 import { TodoTxtTask } from './todo-txt-task';
+import { TodoTxtFilter } from './todo-txt-task-filter';
 
 interface CreateTasksDto {
   texts: string[];
@@ -15,9 +17,45 @@ interface UpdateTaskDro {
   text: string;
 }
 
+interface ParseFilterDto {
+  filter: string;
+}
+
 @Controller('v1')
 export class AppController {
-  constructor(private readonly appStore: AppStore) {}
+  constructor(
+    private readonly appStore: AppStore,
+    private readonly parser: AppParser,
+  ) {}
+
+  @Post('parseFilter')
+  parseFilter(@Body() data: ParseFilterDto): TodoTxtFilter {
+    const result = this.parser.parse(data.filter);
+    let text = result.text;
+    const filter = {
+      projects: result.projects || [],
+      contexts: result.contexts || [],
+      priorities: result.priority ? [result.priority] : [],
+      rawString: data.filter,
+    };
+    filter.projects.forEach(
+      (value) => (text = text.replaceAll(`+${value}`, '')),
+    );
+    filter.contexts.forEach(
+      (value) => (text = text.replaceAll(`@${value}`, '')),
+    );
+    filter.priorities.forEach(
+      (value) => (text = text.replaceAll(`(${value})`, '')),
+    );
+    if (result.dueFilter) {
+      text = text.replaceAll(`due:${result.dueFilter}`, '');
+    }
+    return {
+      ...filter,
+      due: result.dueFilter,
+      text: text.trim(),
+    };
+  }
 
   @Post('createTasks')
   addTasks(@Body() data: CreateTasksDto): TodoTxtTask[] {

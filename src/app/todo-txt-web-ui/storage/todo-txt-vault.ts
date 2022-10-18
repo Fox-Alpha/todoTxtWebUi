@@ -2,6 +2,7 @@ import { TodoTxtTask } from "../tasks/todo-txt-task";
 import { TodoTxtConfig } from "./todo-txt-config";
 import { Injectable } from "@angular/core";
 import { TodoTxtTaskBackend } from "../tasks/todo-txt-task-backend";
+import { TodoTxtFilter } from "../tasks/todo-txt-task-filter";
 
 @Injectable()
 export class TodoTxtVault {
@@ -20,6 +21,24 @@ export class TodoTxtVault {
         `TodoTxt unable to load cache from localStorage due to: ${e}`
       );
     }
+  }
+
+  loadFilter(): TodoTxtFilter {
+    const filterJson = localStorage.getItem('task-filter');
+    if (filterJson) {
+      return JSON.parse(filterJson);
+    }
+    return null;
+  }
+
+  async updateFilter(filterStr: string) {
+    const filter = await this.api.parseFilter(filterStr);
+    localStorage.setItem('task-filter', JSON.stringify(filter))
+    return filter;
+  }
+
+  clearFilter() {
+    localStorage.removeItem('task-filter');
   }
 
   async createTasks(texts: string[]) {

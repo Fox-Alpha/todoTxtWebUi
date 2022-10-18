@@ -4,7 +4,8 @@ export interface ParsedTodoTxtTask {
   completedDate?: string;
   projects?: string[];
   contexts?: string[];
-  metadatas?: string[];
+  dueDate?: Date;
+  dueFilter?: string;
   isActive?: boolean;
   text: string;
 }

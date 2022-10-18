@@ -13,4 +13,4 @@ services:
     ports:
       - 3000:3000
     volumes:
-      - /home/stivius/:/usr/app/data/
+      - /home/stivius/todo/:/usr/app/data/

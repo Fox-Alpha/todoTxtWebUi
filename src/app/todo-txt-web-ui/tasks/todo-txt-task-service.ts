@@ -4,12 +4,16 @@ import { TodoTxtConfig } from "../storage/todo-txt-config";
 import { TodoTxtVault } from "../storage/todo-txt-vault";
 import { TodoTxtAttributes } from "./todo-txt-attributes";
 import { TodoTxtTask } from "./todo-txt-task";
+import { TodoTxtFilter } from "./todo-txt-task-filter";
 
 @Injectable()
 export class TodoTxtTaskService {
+  private filter: TodoTxtFilter = null;
+
   constructor(private vault: TodoTxtVault) {}
 
   async init() {
+    this.filter = this.vault.loadFilter();
     await this.vault.loadAll();
   }
 
@@ -23,29 +27,67 @@ export class TodoTxtTaskService {
     return tastList;
   }
 
-  // FIXME priority filter not working
-  getFilteredTaskArray(filterStr: string) {
-    var filteredTasks = this.getSortedTaskArray();
-    if (filterStr && filterStr !== '') {
-      // create the regex matcher
-      const filters: string[] = filterStr.split(' ');
-      let rStr: string = '';
-      for (var i = 0; i < filters.length; i++) {
-        const filter = filters[i]
-          .replace(/([-\(\)\[\]\{\}+\?*\.$\^\|,:#<\!\\])/g, '\\$1')
-          .replace(/\x08/g, '\\x08');
-        rStr += '.*(' + filter + ').*';
-      }
-      let tasks: TodoTxtTask[] = filteredTasks.filter(function (t) {
-        return t.text.match(new RegExp(rStr, 'i')) || t.text.length === 0;
+  getFilteredTaskArray() {
+    var sortedTasks = this.getSortedTaskArray();
+    if (this.filter != null) {
+      // console.log('filter', this.filter)
+      return sortedTasks.filter((value) => {
+        if (!value.text.length) return true;
+        const projectsEqual = TodoTxtTaskService.hasSubArray(this.filter.projects, value.projects);
+        const contextsEqual = TodoTxtTaskService.hasSubArray(this.filter.contexts, value.contexts);
+        const priorities = TodoTxtTaskService.hasSubArray(this.filter.priorities, value.priority ? [value.priority] : []);
+        const dueDateMatches = (dateStr: string) => {
+          if (this.filter.due) {
+            if (dateStr == null) return false;
+            const today = new Date();
+            const date = new Date(dateStr);
+            today.setHours(0,0,0,0);
+            date.setHours(0,0,0,0);
+            switch (this.filter.due) {
+              case 'past':
+                return date <= today;
+              case 'today':
+                return !(date < today) && !(date > today);
+              case 'future':
+                return date >= today;
+              default:
+                return true;
+            }
+          }
+          return true;
+        };
+        // console.log(projectsEqual, contextsEqual, priorities, value.text.includes(this.filter.text), dueDateMatches(value.dueDate), value)
+        return projectsEqual && 
+          contextsEqual && 
+          priorities &&
+          value.text.includes(this.filter.text) &&
+          dueDateMatches(value.dueDate);
       });
-      filteredTasks = tasks;
     }
-    return filteredTasks;
+    return sortedTasks;
   }
 
   getTask(taskId: number): TodoTxtTask {
     return this.vault.getTask(taskId);
+  }
+
+  getFilterString() {
+    return this.filter?.rawString || '';
+  }
+
+  async updateFilter(filterStr: string) {
+    const filterChanged = this.filter?.rawString !== filterStr;
+
+    if (filterStr.length > 0 && filterChanged) {
+      this.filter = await this.vault.updateFilter(filterStr);
+    } else if (this.filter != null && filterChanged) {
+      this.clearFilter();
+    }
+  }
+
+  async clearFilter() {
+    this.filter = null;
+    this.vault.clearFilter();
   }
 
   async updateTask(taskId: number, newText: string) {
@@ -121,6 +163,12 @@ export class TodoTxtTaskService {
         }
       });
     }
+  }
+
+  private static hasSubArray(master: any[], sub: any[]) {
+    if (master.length === 0) return true;
+    if (master.length > 0 && sub.length === 0) return false;
+    return sub.every(elem => master.indexOf(elem) > -1);
   }
 
   private static arraysEqual(array1: any[], array2: any[]) {
