@@ -1,9 +1,7 @@
 import { ChangeDetectorRef, Component, HostListener, OnInit } from '@angular/core';
-import { DomSanitizer, SafeHtml, SafeUrl } from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { TodoTxtUtils } from './helpers/todo-txt-utils';
-import { TodoTxtConfig } from './storage/todo-txt-config';
 import { TodoTxtTask } from './tasks/todo-txt-task';
-import { saveAs } from 'file-saver';
 import { TodoTxtAttributes } from './tasks/todo-txt-attributes';
 import { FileData } from './helpers/file-data';
 import { TodoTxtTaskService } from './tasks/todo-txt-task-service';
@@ -15,51 +13,31 @@ import { TodoTxtTaskService } from './tasks/todo-txt-task-service';
 })
 export class TodoTxtWebUiComponent implements OnInit {
   requiredFileType: string = '.txt';
-  fileName: string;
-  downloadFileName: string;
-  isDirty: boolean;
-  showClosed: boolean;
-  downloadUrl: SafeUrl;
   editingTaskId: number;
   isAddingNew: boolean;
   filterUpdateHandler: number;
   filterInitialStr: string = '';
+  newTaskInitialInput: string = '';
 
   constructor(
     private sanitiser: DomSanitizer,
     private changeDetector: ChangeDetectorRef,
     private todo: TodoTxtTaskService,
-  ) {
-    this.isDirty = false;
-    this.showClosed = this.todo.getConfig().showClosed;
-    this.downloadFileName = 'todo.txt';
-  }
+  ) { }
 
   async ngOnInit() {
     await this.todo.init();
     this.filterInitialStr = this.todo.getFilterString();
   }
 
-  async toggleShowClosed(): Promise<void> {
-    let cfg: TodoTxtConfig = this.todo.getConfig();
-    cfg.showClosed = !cfg.showClosed;
-    this.showClosed = cfg.showClosed;
-    await this.todo.setConfig(cfg);
-  }
-
   async click_OpenToDoFile(): Promise<void> {
     const data: FileData = await TodoTxtUtils.readFile().catch((err) => {
       if (err.name != 'AbortError') {
-        // AbortError is manual user cancel of file save operation
-        console.warn(
-          `unable to use File System API so falling back to legacy mode: ${err}`
-        );
         document.getElementById('file-input').click();
         return null;
       }
     });
     if (data) {
-      this.fileName = data.name;
       await this.todo.createTasks(data.text?.split('\n') || []);
     }
   }
@@ -70,50 +48,45 @@ export class TodoTxtWebUiComponent implements OnInit {
       if (files && files.length > 0) {
         let file: File = files[0];
         if (file) {
-          await this.todo.removeAllTasks();
-          this.fileName = file.name;
-          let text: string = await file.text();
+          const text = await file.text();
           await this.todo.createTasks(text.split('\n'));
         }
       }
     }
   }
 
-  async click_AddTask(): Promise<number> {
-    this.isAddingNew = true;
-    this.isDirty = true;
-    const task = await this.todo.appendTask('');
-    return await this.click_StartEditTask(task.id);
-  }
-
-  async click_SaveTasks(): Promise<void> {
-    let text: string = this.getTasks()
-      .map((t) => t.text?.trim())
-      ?.join('\n');
-    if (text) {
-      await TodoTxtUtils.saveToFile({ text: text, name: this.fileName }).catch(
-        (err) => {
-          if (err.name != 'AbortError') {
-            // AbortError is manual user cancel of file save operation
-            console.warn(
-              `unable to use File System API so falling back to legacy mode: ${err}`
-            );
-            let blob = new Blob([text], {
-              type: 'data:attachment/text; charset=utf-8',
-            });
-            saveAs(blob, this.downloadFileName);
-          }
-        }
-      );
+  async click_DateChanged(id: number) {
+    const date = document.querySelector<HTMLInputElement>(`#date_${id}`)?.value;
+    if (date) {
+      const editingTaskEl = document.querySelector<HTMLDivElement>(`#textarea_${id}`);
+      editingTaskEl.innerHTML = this.todo.replaceDate(editingTaskEl.innerHTML, date);
     }
-    this.isDirty = false;
   }
 
-  async keyup_UpdateFilter(filter: string): Promise<void> {
+  async click_AddTask()  {
+    this.isAddingNew = true;
+    this.changeDetector.detectChanges();
+    await this.setFocus('new');
+  }
+
+  async click_SaveNewTask(text: string): Promise<void> {
+    if (text.trim().length === 0) {
+      alert('cannot save empty task');
+      return;
+    }
+    await this.todo.appendTask(text);
+    this.doneEditing();
+  }
+
+  async keyup_UpdateFilter(filterStr: string): Promise<void> {
     clearTimeout(this.filterUpdateHandler);
     // @ts-ignore
     this.filterUpdateHandler = setTimeout(async () => {
-      await this.todo.updateFilter(filter);
+      const filter = await this.todo.updateFilter(filterStr);
+      this.newTaskInitialInput = [
+        ...filter.projects.map(value => `+${value}`),
+        ...filter.contexts.map(value => `@${value}`)
+      ].join(' ');
     }, 500);
   }
 
@@ -122,26 +95,16 @@ export class TodoTxtWebUiComponent implements OnInit {
     this.todo.clearFilter();
   }
 
-  async click_MarkComplete(id: number): Promise<void> {
-    await this.todo.closeTask(id);
-  }
-
-  async click_MarkActive(id: number): Promise<void> {
-    await this.todo.activateTask(id);
-  }
-
-  async click_StartEditTask(id: number): Promise<number> {
+  async click_StartEditTask(id: number): Promise<void> {
     this.editingTaskId = id;
     this.changeDetector.detectChanges();
-    return await this.setFocus(id);
+    await this.setFocus(id.toString());
   }
 
-  async setFocus(id: number): Promise<number> {
+  async setFocus(id: string): Promise<void> {
     let el: HTMLElement = document.getElementById(`textarea_${id}`);
     if (el) {
-      console.info(`setting focus on element 'textarea_${id}'`);
       el.focus();
-      return id;
     } else {
       return Promise.reject(`unable to find element 'textarea_${id}'`);
     }
@@ -152,26 +115,21 @@ export class TodoTxtWebUiComponent implements OnInit {
       `#textarea_${id}`
     ).innerText;
     if (text.trim().length === 0) {
-      alert('cannot add empty task');
+      alert('cannot save empty task');
       return;
     }
     await this.todo.updateTask(id, text);
-    this.isDirty = true;
     this.doneEditing();
     return text;
   }
 
   @HostListener('keydown.esc')
   async click_CancelTaskEdit(): Promise<void> {
-    if (this.isAddingNew) {
-      await this.click_DeleteTask(this.editingTaskId);
-    }
     this.doneEditing();
   }
 
   async click_DeleteTask(id: number): Promise<void> {
     await this.todo.removeTask(id);
-    this.isDirty = true;
     this.doneEditing();
   }
 

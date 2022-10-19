@@ -1,4 +1,4 @@
-FROM node:14.20.0-alpine
+FROM node:16.13.1-alpine
 RUN apk add g++ make py3-pip
 
 WORKDIR /usr/app

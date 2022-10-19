@@ -7,7 +7,7 @@ const parser = new Parser();
 const dueDateParser = function (data: any) {
   const match = data.original.match(/t:([0-9]{4}-[0-9]{2}-[0-9]{2})/);
   if (match !== null) {
-    data.dueDate = new Date(match[1]);
+    data.dueDate = match[1];
   }
 };
 

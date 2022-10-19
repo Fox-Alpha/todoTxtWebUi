@@ -32,22 +32,4 @@ export module TodoTxtUtils {
         const text = await file.text();
         return {text: text, name: file.name, path: file.webkitRelativePath, size: file.size};
     }
-
-    export async function saveToFile(data: FileData): Promise<void> {
-        const options = {
-            suggestedName: data.name || 'todo.txt',
-            types: [
-              {
-                description: "ToDo.txt file",
-                accept: {
-                  "text/plain": [".txt"],
-                },
-              },
-            ],
-          };
-        const handle = await window.showSaveFilePicker(options);
-        const file = await handle.createWritable();
-        await file.write(data.text || '');
-        await file.close();
-    }
 }
