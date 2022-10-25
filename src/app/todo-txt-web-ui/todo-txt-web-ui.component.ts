@@ -55,12 +55,17 @@ export class TodoTxtWebUiComponent implements OnInit {
     }
   }
 
-  async click_DateChanged(id: number) {
+  async click_DateChangedForExisting(id: number) {
     const date = document.querySelector<HTMLInputElement>(`#date_${id}`)?.value;
     if (date) {
-      const editingTaskEl = document.querySelector<HTMLDivElement>(`#textarea_${id}`);
-      editingTaskEl.innerHTML = this.todo.replaceDate(editingTaskEl.innerHTML, date);
+      const editingTaskEl = document.querySelector<HTMLInputElement>(`#textarea_${id}`);
+      editingTaskEl.value = this.todo.replaceDate(editingTaskEl.value, date);
     }
+  }
+
+  async click_DateChangedForNew(date: string) {
+    const editingTaskEl = document.querySelector<HTMLInputElement>(`#textarea_new`);
+    editingTaskEl.value = this.todo.replaceDate(editingTaskEl.value, date);
   }
 
   async click_AddTask()  {
@@ -111,9 +116,7 @@ export class TodoTxtWebUiComponent implements OnInit {
   }
 
   async click_SaveTaskEdit(id: number): Promise<string> {
-    let text: string = document.querySelector<HTMLDivElement>(
-      `#textarea_${id}`
-    ).innerText;
+    const text = document.querySelector<HTMLInputElement>(`#textarea_${id}`).value;
     if (text.trim().length === 0) {
       alert('cannot save empty task');
       return;

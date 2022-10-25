@@ -43,11 +43,11 @@ export class TodoTxtTaskService {
             date.setHours(0,0,0,0);
             switch (this.filter.due) {
               case 'past':
-                return date <= today;
+                return date < today;
               case 'today':
                 return !(date < today) && !(date > today);
               case 'future':
-                return date >= today;
+                return date > today;
               default:
                 return true;
             }

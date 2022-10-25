@@ -26,19 +26,20 @@
                     <button class="btn btn-lg btn-light text-start w-100" (click)="click_StartEditTask(t.id)" aria-label="edit task" [innerHTML]="getMarkupForTask(t.text, t.id)" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit task"></button>
                 </div>
                 <div *ngIf="editingTaskId == t.id">
-                    <div id="textarea_{{t.id}}" tabindex="0" contenteditable="true" class="textarea btn-lg pt-1 text-start w-100" [innerHTML]="t.text" (keydown.enter)="click_SaveTaskEdit(t.id)" (keydown.esc)="click_CancelTaskEdit()"></div>
+                    <input id="textarea_{{t.id}}" class="textarea btn-lg pt-1 text-start w-100" [value]="t.text" (keydown.enter)="click_SaveTaskEdit(t.id)" (keydown.esc)="click_CancelTaskEdit()">
                     <div class="btn-group d-flex flex-wrap pt-1" role="group">
                         <button class="btn btn-success" (click)="click_SaveTaskEdit(t.id)" aria-label="save changes" data-bs-toggle="tooltip" data-bs-placement="top" title="Save Changes (Enter)" data-bs-toggle="tooltip" data-bs-placement="top" title="Save changes"><i class="bi bi-check"></i><span class="fw-light d-none d-lg-inline">Update Task</span></button>
                         <button class="btn btn-warning" (click)="click_CancelTaskEdit()" aria-label="discard changes" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard Changes (Esc)" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard changes"><i class="bi bi-x"></i><span class="fw-light d-none d-lg-inline"> Discard Changes</span></button>
-                        <input id="date_{{t.id}}" class="btn btn-danger" type="date" (change)="click_DateChanged(t.id)" aria-label="schedule task" data-bs-toggle="tooltip" data-bs-placement="top" title="Schedule Task" data-bs-toggle="tooltip" data-bs-placement="top" [value]="t.dueDate">
+                        <input id="date_{{t.id}}" class="btn btn-danger" type="date" (change)="click_DateChangedForExisting(t.id)" aria-label="schedule task" data-bs-toggle="tooltip" data-bs-placement="top" title="Schedule Task" data-bs-toggle="tooltip" data-bs-placement="top" [value]="t.dueDate">
                     </div>
                 </div>
             </div>
             <div *ngIf="isAddingNew">
-                <div id="textarea_new" tabindex="0" contenteditable="true" class="textarea btn-lg pt-1 text-start w-100" [innerHTML]="newTaskInitialInput" (keydown.enter)="click_SaveNewTask(newTaskInput.innerHTML)" (keydown.esc)="click_CancelTaskEdit()" #newTaskInput></div>
+                <input id="textarea_new" class="textarea btn-lg pt-1 text-start w-100" [value]="newTaskInitialInput" (keydown.enter)="click_SaveNewTask(newTaskInput.value)" (keydown.esc)="click_CancelTaskEdit()" #newTaskInput>
                 <div class="btn-group d-flex flex-wrap pt-1" role="group">
-                    <button class="btn btn-success" (click)="click_SaveNewTask(newTaskInput.innerHTML)" aria-label="save new task" data-bs-toggle="tooltip" data-bs-placement="top" title="Save Changes (Enter)" data-bs-toggle="tooltip" data-bs-placement="top" title="Save changes"><i class="bi bi-check"></i><span class="fw-light d-none d-lg-inline">Save Task</span></button>
+                    <button class="btn btn-success" (click)="click_SaveNewTask(newTaskInput.value)" aria-label="save new task" data-bs-toggle="tooltip" data-bs-placement="top" title="Save Changes (Enter)" data-bs-toggle="tooltip" data-bs-placement="top" title="Save changes"><i class="bi bi-check"></i><span class="fw-light d-none d-lg-inline">Save Task</span></button>
                     <button class="btn btn-warning" (click)="click_CancelTaskEdit()" aria-label="discard changes" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard Changes (Esc)" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard changes"><i class="bi bi-x"></i><span class="fw-light d-none d-lg-inline"> Discard Changes</span></button>
+                    <input id="date_new" class="btn btn-danger" type="date" (change)="click_DateChangedForNew(newDateInput.value)" aria-label="schedule task" data-bs-toggle="tooltip" data-bs-placement="top" title="Schedule Task" data-bs-toggle="tooltip" data-bs-placement="top" #newDateInput>
                 </div>
             </div>
         </div>
