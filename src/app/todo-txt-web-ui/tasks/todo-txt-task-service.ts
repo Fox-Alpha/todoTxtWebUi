@@ -69,8 +69,8 @@ export class TodoTxtTaskService {
     return this.vault.getTask(taskId);
   }
 
-  getFilterString() {
-    return this.filter?.rawString || '';
+  getFilter() {
+    return this.filter;
   }
 
   async updateFilter(filterStr: string) {
@@ -93,9 +93,19 @@ export class TodoTxtTaskService {
     const dateRegexp = /t:([0-9]{4}-[0-9]{2}-[0-9]{2})/;
     const match = text.match(dateRegexp);
     if (match) {
-      return text.replace(dateRegexp, `t:${date}`);
+      return text.replace(dateRegexp, date.length > 0 ? `t:${date}` : '').trim();
     } else {
       return `${text} t:${date}`
+    }
+  }
+
+  replacePriority(text: string, priority: string) {
+    const priorityRegexp = /\([A-Z]\)/;
+    const match = text.match(priorityRegexp);
+    if (match) {
+      return text.replace(priorityRegexp, priority).trim();
+    } else {
+      return `${priority} ${text}`
     }
   }
 
@@ -163,12 +173,22 @@ export class TodoTxtTaskService {
     return array1[0] < array2[0] ? -1 : 1;
   }
 
-  private compareTasks(taskA: TodoTxtTask, taskB: TodoTxtTask) {
-    const { isActive: aActive, priority: aPri, projects: aProjects, contexts: aContexts } = taskA;
-    const { isActive: bActive, priority: bPri, projects: bProjects, contexts: bContexts } = taskB;
+  private static comparePriorities(priority1: string, priority2: string) {
+    return !priority2 || priority1 < priority2 ? -1 : 1;
+  }
 
+  private compareTasks(taskA: TodoTxtTask, taskB: TodoTxtTask) {
+    const { priority: aPri, projects: aProjects, contexts: aContexts, dueDate: aDueDate } = taskA;
+    const { priority: bPri, projects: bProjects, contexts: bContexts, dueDate: bDueDate } = taskB;
+
+    if (aDueDate !== bDueDate) {
+      if (aDueDate && bDueDate && aPri !== bPri) {
+        return TodoTxtTaskService.comparePriorities(aPri, bPri);
+      }
+      return !bDueDate || new Date(aDueDate) < new Date(bDueDate) ? -1 : 1;
+    }
     if (aPri !== bPri) {
-      return !bPri || aPri < bPri ? -1 : 1;
+      return TodoTxtTaskService.comparePriorities(aPri, bPri);
     }
     if (!TodoTxtTaskService.arraysEqual(aProjects, bProjects)) {
       return TodoTxtTaskService.compareArrays(aProjects, bProjects);

@@ -5,6 +5,7 @@ import { TodoTxtTask } from './tasks/todo-txt-task';
 import { TodoTxtAttributes } from './tasks/todo-txt-attributes';
 import { FileData } from './helpers/file-data';
 import { TodoTxtTaskService } from './tasks/todo-txt-task-service';
+import { TodoTxtFilter } from 'api/dist/tasks/todo-txt-task-filter';
 
 @Component({
   selector: 'app-todo-txt-web-ui',
@@ -27,7 +28,20 @@ export class TodoTxtWebUiComponent implements OnInit {
 
   async ngOnInit() {
     await this.todo.init();
-    this.filterInitialStr = this.todo.getFilterString();
+    const filter = this.todo.getFilter();
+    this.filterInitialStr = filter?.rawString || '';
+    this.updateTaskInitalInput(filter);
+  }
+
+  updateTaskInitalInput(filter: TodoTxtFilter) {
+    if (filter != null) {
+      this.newTaskInitialInput = [
+        ...filter.projects.map(value => `+${value}`),
+        ...filter.contexts.map(value => `@${value}`)
+      ].join(' ');
+    } else {
+      this.newTaskInitialInput = '';
+    }
   }
 
   async click_OpenToDoFile(): Promise<void> {
@@ -55,9 +69,22 @@ export class TodoTxtWebUiComponent implements OnInit {
     }
   }
 
+  async click_PriorityChangedForExisting(id: string): Promise<void> {
+    const priority = document.querySelector<HTMLSelectElement>(`#priority_${id}`)?.value;
+    if (priority != null) {
+      const editingTaskEl = document.querySelector<HTMLInputElement>(`#textarea_${id}`);
+      editingTaskEl.value = this.todo.replacePriority(editingTaskEl.value, priority);
+    }
+  }
+
+  async click_PriorityChangedForNew(priority: string): Promise<void> {
+    const editingTaskEl = document.querySelector<HTMLInputElement>(`#textarea_new`);
+    editingTaskEl.value = this.todo.replacePriority(editingTaskEl.value, priority);
+  }
+
   async click_DateChangedForExisting(id: number) {
     const date = document.querySelector<HTMLInputElement>(`#date_${id}`)?.value;
-    if (date) {
+    if (date != null) {
       const editingTaskEl = document.querySelector<HTMLInputElement>(`#textarea_${id}`);
       editingTaskEl.value = this.todo.replaceDate(editingTaskEl.value, date);
     }
@@ -88,15 +115,13 @@ export class TodoTxtWebUiComponent implements OnInit {
     // @ts-ignore
     this.filterUpdateHandler = setTimeout(async () => {
       const filter = await this.todo.updateFilter(filterStr);
-      this.newTaskInitialInput = [
-        ...filter.projects.map(value => `+${value}`),
-        ...filter.contexts.map(value => `@${value}`)
-      ].join(' ');
+      this.updateTaskInitalInput(filter);
     }, 500);
   }
 
   async click_ClearFilter(event: any): Promise<void> {
     event.target.value = undefined;
+    this.updateTaskInitalInput(null);
     this.todo.clearFilter();
   }
 
