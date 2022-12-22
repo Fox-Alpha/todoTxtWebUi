@@ -1,2 +1,2 @@
 export const TODOTXT_FILE =
-  process.env.TODOTXT_FILE || '/home/stivius/todotxt-web/todo.txt';
+  process.env.TODOTXT_FILE || '/home/stivius/Projects/todotxt-web/todo.txt';
