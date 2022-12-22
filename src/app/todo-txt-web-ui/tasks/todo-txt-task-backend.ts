@@ -7,14 +7,14 @@ export class TodoTxtTaskBackend {
     constructor(private http: HttpClient) { }
 
     async appendTask(text: string) {
-      const result = await this.http.post('http://localhost:3000/v1/appendTask', {
+      const result = await this.http.post('http://192.168.0.100:3000/v1/appendTask', {
         text
       }).toPromise();
       return result as TodoTxtTask;
     }
 
     async updateTask(id: number, text: string) {
-      const result = await this.http.post('http://localhost:3000/v1/updateTask', {
+      const result = await this.http.post('http://192.168.0.100:3000/v1/updateTask', {
         id,
         text
       }).toPromise();
@@ -22,18 +22,22 @@ export class TodoTxtTaskBackend {
     }
 
     async createTasks(texts: string[]) {
-      const result = await this.http.post('http://localhost:3000/v1/createTasks', {
+      const result = await this.http.post('http://192.168.0.100:3000/v1/createTasks', {
         texts
       }).toPromise();
       return result as TodoTxtTask[];
     }
 
     async loadTasks() {
-      const result = await this.http.get('http://localhost:3000/v1/loadTasks').toPromise();
+      const result = await this.http.get('http://192.168.0.100:3000/v1/loadTasks').toPromise();
       return result as TodoTxtTask[];
     }
 
     async removeTasks() {
-      await this.http.delete('http://localhost:3000/v1/removeTasks').toPromise();
+      await this.http.delete('http://192.168.0.100:3000/v1/removeTasks').toPromise();
+    }
+
+    async removeTask(id: number) {
+      await this.http.delete(`http://192.168.0.100:3000/v1/removeTask?id=${id}`).toPromise();
     }
 }

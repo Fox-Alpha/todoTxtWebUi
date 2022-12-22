@@ -1,0 +1,16 @@
+version: "3.3"
+services:
+  frontend:
+    build:
+      context: .
+    ports:
+      - 4300:4300
+  backend:
+    build:
+      context: api
+    environment:
+      TODOTXT_FILE: "/usr/app/data/todo.txt"
+    ports:
+      - 3000:3000
+    volumes:
+      - /home/stivius/:/usr/app/data/
