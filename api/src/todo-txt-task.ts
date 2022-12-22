@@ -1,5 +1,4 @@
-export interface TodoTxtTask {
-  id: string;
+export interface ParsedTodoTxtTask {
   priority?: string;
   createdDate?: string;
   completedDate?: string;
@@ -8,4 +7,8 @@ export interface TodoTxtTask {
   metadatas?: string[];
   isActive?: boolean;
   text: string;
+}
+
+export interface TodoTxtTask extends ParsedTodoTxtTask {
+  id: number;
 }

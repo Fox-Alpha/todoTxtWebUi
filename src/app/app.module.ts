@@ -5,8 +5,8 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { TodoTxtVault } from './todo-txt-web-ui/storage/todo-txt-vault';
-import { TodoTxtTaskParser } from './todo-txt-web-ui/tasks/todo-txt-task-parser';
-import { TodoTxt } from './todo-txt-web-ui/todo-txt';
+import { TodoTxtTaskBackend } from './todo-txt-web-ui/tasks/todo-txt-task-backend';
+import { TodoTxtTaskService } from './todo-txt-web-ui/tasks/todo-txt-task-service';
 
 @NgModule({
   declarations: [
@@ -18,8 +18,8 @@ import { TodoTxt } from './todo-txt-web-ui/todo-txt';
     HttpClientModule
   ],
   providers: [
-    TodoTxt,
-    TodoTxtTaskParser,
+    TodoTxtTaskService,
+    TodoTxtTaskBackend,
     TodoTxtVault,
   ],
   bootstrap: [AppComponent]

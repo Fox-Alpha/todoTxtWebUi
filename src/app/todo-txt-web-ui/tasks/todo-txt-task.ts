@@ -1,5 +1,5 @@
 export interface TodoTxtTask {
-    id: string;
+    id: number;
     priority?: string;
     createdDate?: string;
     completedDate?: string;
