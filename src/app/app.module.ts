@@ -1,10 +1,12 @@
+import { HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { APP_BASE_HREF } from '@angular/common';
-import { environment } from 'src/environments/environment';
+import { TodoTxtVault } from './todo-txt-web-ui/storage/todo-txt-vault';
+import { TodoTxtTaskParser } from './todo-txt-web-ui/tasks/todo-txt-task-parser';
+import { TodoTxt } from './todo-txt-web-ui/todo-txt';
 
 @NgModule({
   declarations: [
@@ -12,9 +14,14 @@ import { environment } from 'src/environments/environment';
   ],
   imports: [
     BrowserModule,
-    AppRoutingModule
+    AppRoutingModule,
+    HttpClientModule
   ],
-  providers: [{provide: APP_BASE_HREF, useValue : `${environment.baseHref}` }],
+  providers: [
+    TodoTxt,
+    TodoTxtTaskParser,
+    TodoTxtVault,
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

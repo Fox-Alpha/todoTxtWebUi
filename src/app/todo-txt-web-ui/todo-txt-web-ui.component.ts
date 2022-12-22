@@ -2,7 +2,6 @@ import { ChangeDetectorRef, Component, HostListener } from '@angular/core';
 import { DomSanitizer, SafeHtml, SafeUrl } from '@angular/platform-browser';
 import { TodoTxtUtils } from './helpers/todo-txt-utils';
 import { TodoTxtConfig } from './storage/todo-txt-config';
-import { TodoTxtVault } from './storage/todo-txt-vault';
 import { TodoTxtTask } from './tasks/todo-txt-task';
 import { TodoTxtTaskParser } from './tasks/todo-txt-task-parser';
 import { TodoTxt } from './todo-txt';
@@ -13,7 +12,7 @@ import { FileData } from './helpers/file-data';
 @Component({
   selector: 'app-todo-txt-web-ui',
   templateUrl: './todo-txt-web-ui.component.html',
-  styleUrls: ['./todo-txt-web-ui.component.css']
+  styleUrls: ['./todo-txt-web-ui.component.css'],
 })
 export class TodoTxtWebUiComponent {
   requiredFileType: string = '.txt';
@@ -26,46 +25,50 @@ export class TodoTxtWebUiComponent {
   editingTaskId: string;
   isAddingNew: boolean;
 
-  constructor(private sanitiser: DomSanitizer, private changeDetector: ChangeDetectorRef) {
+  constructor(
+    private sanitiser: DomSanitizer,
+    private changeDetector: ChangeDetectorRef,
+    private todo: TodoTxt,
+  ) {
     this.isDirty = false;
-    this.showClosed = TodoTxtVault.getConfig().showClosed;
+    this.showClosed = this.todo.getConfig().showClosed;
     this.downloadFileName = 'todo.txt';
   }
 
   async toggleShowClosed(): Promise<void> {
-    let cfg: TodoTxtConfig = TodoTxtVault.getConfig();
+    let cfg: TodoTxtConfig = this.todo.getConfig();
     cfg.showClosed = !cfg.showClosed;
     this.showClosed = cfg.showClosed;
-    TodoTxtVault.setConfig(cfg);
+    this.todo.setConfig(cfg);
   }
 
   async click_OpenToDoFile(): Promise<void> {
-    const data: FileData = await TodoTxtUtils.readFile()
-    .catch((err) => {
-      if (err.name != 'AbortError') { // AbortError is manual user cancel of file save operation
-        console.warn(`unable to use File System API so falling back to legacy mode: ${err}`);
+    const data: FileData = await TodoTxtUtils.readFile().catch((err) => {
+      if (err.name != 'AbortError') {
+        // AbortError is manual user cancel of file save operation
+        console.warn(
+          `unable to use File System API so falling back to legacy mode: ${err}`
+        );
         document.getElementById('file-input').click();
         return null;
       }
     });
     if (data) {
       this.fileName = data.name;
-      let lines: string[] = data.text?.split('\n') || [];
-      TodoTxtVault.addTasks(...TodoTxtTaskParser.getMany(...lines));
+      await this.todo.addTasks(data.text?.split('\n') || []);
     }
   }
-  
+
   async processToDoFile(event: any): Promise<void> {
     if (event) {
       let files: File[] = event.target?.files;
       if (files && files.length > 0) {
         let file: File = files[0];
         if (file) {
-          TodoTxtVault.removeAllTasks();
+          this.todo.removeAllTasks();
           this.fileName = file.name;
           let text: string = await file.text();
-          let lines: string[] = text.split('\n');
-          TodoTxtVault.addTasks(...TodoTxtTaskParser.getMany(...lines));
+          await this.todo.addTasks(text.split('\n'));
         }
       }
     }
@@ -73,23 +76,30 @@ export class TodoTxtWebUiComponent {
 
   async click_AddTask(): Promise<string> {
     this.isAddingNew = true;
-    let t: TodoTxtTask = TodoTxtTaskParser.get('');
-    TodoTxt.addTask(t);
+    const t = await this.todo.addTask('');
     this.isDirty = true;
     return await this.click_StartEditTask(t.id);
   }
 
   async click_SaveTasks(): Promise<void> {
-    let text: string = this.getTasks().map((t) => t.text?.trim())?.join('\n');
+    let text: string = this.getTasks()
+      .map((t) => t.text?.trim())
+      ?.join('\n');
     if (text) {
-      await TodoTxtUtils.saveToFile({text: text, name: this.fileName})
-      .catch((err) => {
-        if (err.name != 'AbortError') { // AbortError is manual user cancel of file save operation
-          console.warn(`unable to use File System API so falling back to legacy mode: ${err}`);
-          let blob = new Blob([text], { type: 'data:attachment/text; charset=utf-8' });
-          saveAs(blob, this.downloadFileName);
+      await TodoTxtUtils.saveToFile({ text: text, name: this.fileName }).catch(
+        (err) => {
+          if (err.name != 'AbortError') {
+            // AbortError is manual user cancel of file save operation
+            console.warn(
+              `unable to use File System API so falling back to legacy mode: ${err}`
+            );
+            let blob = new Blob([text], {
+              type: 'data:attachment/text; charset=utf-8',
+            });
+            saveAs(blob, this.downloadFileName);
+          }
         }
-      });
+      );
     }
     this.isDirty = false;
   }
@@ -104,13 +114,13 @@ export class TodoTxtWebUiComponent {
   }
 
   async click_MarkComplete(id: string): Promise<void> {
-    TodoTxt.closeTask(id);
+    this.todo.closeTask(id);
   }
 
   async click_MarkActive(id: string): Promise<void> {
-    TodoTxt.activateTask(id);
+    this.todo.activateTask(id);
   }
-  
+
   async click_StartEditTask(id: string): Promise<string> {
     this.editingTaskId = id;
     this.changeDetector.detectChanges();
@@ -129,8 +139,10 @@ export class TodoTxtWebUiComponent {
   }
 
   async click_SaveTaskEdit(id: string): Promise<string> {
-    let text: string = document.querySelector<HTMLDivElement>(`#textarea_${id}`).innerText;
-    TodoTxt.updateTask(id, text);
+    let text: string = document.querySelector<HTMLDivElement>(
+      `#textarea_${id}`
+    ).innerText;
+    await this.todo.updateTask(id, text);
     this.isDirty = true;
     this.doneEditing();
     return text;
@@ -145,7 +157,7 @@ export class TodoTxtWebUiComponent {
   }
 
   async click_DeleteTask(id: string): Promise<void> {
-    TodoTxtVault.removeTask(id);
+    this.todo.removeTask(id);
     this.isDirty = true;
     this.doneEditing();
   }
@@ -157,10 +169,10 @@ export class TodoTxtWebUiComponent {
   }
 
   getTasks(): TodoTxtTask[] {
-    let tasks: TodoTxtTask[] = TodoTxt.getFilteredTaskArray(this.filterStr);
-    if (!TodoTxtVault.getConfig().showClosed) {
+    let tasks: TodoTxtTask[] = this.todo.getFilteredTaskArray(this.filterStr);
+    if (!this.todo.getConfig().showClosed) {
       let active: TodoTxtTask[] = [];
-      for (var i=0; i<tasks.length; i++) {
+      for (var i = 0; i < tasks.length; i++) {
         if (tasks[i].isActive) {
           active.push(tasks[i]);
         }
@@ -170,58 +182,71 @@ export class TodoTxtWebUiComponent {
     return tasks;
   }
 
-  /**
-   * function will generate a html-markup version of the task
-   * @param {TodoTxtTask} task - the task to generate for
-   * @returns {string} the HTML marked up task text
-   */
-   getMarkupForTask(text: string): SafeHtml {
-      let task: TodoTxtTask = TodoTxtTaskParser.get(text);
-      // make html compatible
-      text = TodoTxtUtils.htmlEncode(text);
+  getMarkupForTask(text: string, id: string): SafeHtml {
+    console.log('getMarkupForTask', text, id)
+    const task = this.todo.getTask(id);
+    // make html compatible
+    text = TodoTxtUtils.htmlEncode(text);
 
-      // markup priority
-      let priCls: string = this.getDisplayClassForTask(task);
-      text = text.replace(task.priority, "<span class=\"" + priCls + "\"><b>" + task.priority + "</b></span>");
+    // markup priority
+    let priCls: string = this.getDisplayClassForTask(task);
+    text = text.replace(
+      task.priority,
+      '<span class="' + priCls + '"><b>' + task.priority + '</b></span>'
+    );
 
-      // markup projects
-      let projects: string[] = task.projects;
-      projects.forEach((project) => {
-          var regex = new RegExp(project.replace(/\+/g, "\\+") + "(?![0-9A-Za-z])", "g");
-          text = text.replace(regex, "<span class=\"text-muted\"><b><i>" + project + "</i></b></span>");
-      });
+    // FIXME find by project name, not regex
+    // markup projects
+    let projects: string[] = task.projects;
+    projects.forEach((project) => {
+      var regex = new RegExp(
+        project.replace(/\+/g, '\\+') + '(?![0-9A-Za-z])',
+        'g'
+      );
+      text = text.replace(
+        regex,
+        '<span class="text-muted"><b><i>' + project + '</i></b></span>'
+      );
+    });
 
-      // markup contexts
-      let contexts: string[] = task.contexts;
-      contexts.forEach((ctx) => {
-          var regex = new RegExp(ctx + "(?![0-9A-Za-z])", "g");
-          text = text.replace(regex, "<span class=\"text-muted\"><b><i>" + ctx + "</i></b></span>");
-      });
+    // FIXME find by context name, not regex
+    // markup contexts
+    let contexts: string[] = task.contexts;
+    contexts.forEach((ctx) => {
+      var regex = new RegExp(ctx + '(?![0-9A-Za-z])', 'g');
+      text = text.replace(
+        regex,
+        '<span class="text-muted"><b><i>' + ctx + '</i></b></span>'
+      );
+    });
 
-      // markup created date
-      let date: string = task.createdDate;
-      if (date) {
-          text = text.replace(date, "<span class=\"text-muted hidden-xs\"><b><i>" + date + "</i></b></span>");
-      }
+    // markup created date
+    let date: string = task.createdDate;
+    if (date) {
+      text = text.replace(
+        date,
+        '<span class="text-muted hidden-xs"><b><i>' + date + '</i></b></span>'
+      );
+    }
 
-      return this.sanitiser.bypassSecurityTrustHtml(text);
+    return this.sanitiser.bypassSecurityTrustHtml(text);
   }
-  
-  getDisplayClassForTask(task: TodoTxtTask): string {
-      let cls: string = '';
-      if (task.priority !== null && task.isActive) {
-          if (task.priority === "(A)") {
-              cls += " text-danger";
-          }
-          if (task.priority === "(B)") {
-              cls += " text-warning";
-          }
-          if (task.priority === "(C)") {
-              cls += " text-primary";
-          }
-      }
 
-      return cls;
+  getDisplayClassForTask(task: TodoTxtTask): string {
+    let cls: string = '';
+    if (task.priority !== null && task.isActive) {
+      if (task.priority === '(A)') {
+        cls += ' text-danger';
+      }
+      if (task.priority === '(B)') {
+        cls += ' text-warning';
+      }
+      if (task.priority === '(C)') {
+        cls += ' text-primary';
+      }
+    }
+
+    return cls;
   }
 
   getPriorities(): string[] {
