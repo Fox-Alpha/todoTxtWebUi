@@ -7,17 +7,33 @@ import { Injectable } from "@angular/core";
 export class TodoTxtVault {
   private tasks: Map<string, TodoTxtTask> = new Map<string, TodoTxtTask>();
   private config: TodoTxtConfig = { showClosed: false };
-  private cacheError: number = 0;
+
+  constructor() {
+    this.load();
+  }
 
   addTasks(...tasks: TodoTxtTask[]): void {
     if (tasks) {
-      for (var i = 0; i < tasks.length; i++) {
-        let task: TodoTxtTask = tasks[i];
+      tasks.forEach((task) => {
         this.tasks.set(task.id, task);
-
-        this.persist();
-      }
+      });
+      this.persist();
     }
+  }
+
+  getTask(taskId: string): TodoTxtTask {
+    if (this.tasks.has(taskId)) {
+      return this.tasks.get(taskId);
+    }
+    throw new Error(`no TodoTxtTask with ID of '${taskId}' could be found`);
+  }
+
+  getAllTasks(): TodoTxtTask[] {
+    const list: TodoTxtTask[] = [];
+    this.tasks.forEach((value: TodoTxtTask) => {
+      list.push(value);
+    });
+    return list;
   }
 
   removeTask(taskId: string): boolean {
@@ -38,28 +54,7 @@ export class TodoTxtVault {
     this.persist();
   }
 
-  getTask(taskId: string): TodoTxtTask {
-    this.load();
-
-    if (this.tasks.has(taskId)) {
-      return this.tasks.get(taskId);
-    }
-    throw new Error(`no TodoTxtTask with ID of '${taskId}' could be found`);
-  }
-
-  getAllTasks(): TodoTxtTask[] {
-    this.load();
-
-    let ts: TodoTxtTask[] = [];
-    this.tasks.forEach((value: TodoTxtTask) => {
-      ts.push(value);
-    });
-    return ts;
-  }
-
   getConfig(): TodoTxtConfig {
-    this.load();
-
     return this.config;
   }
 
@@ -77,16 +72,12 @@ export class TodoTxtVault {
       };
       localStorage.setItem('todo-txt', JSON.stringify(cache));
     } catch (e) {
-      if (this.cacheError == 0) {
-        // TODO: move this to TodoTxtView and present as Modal on startup
-        alert(
-          'WARNING: unable to store Tasks in localStorage; ensure you export your tasks before you close the browser or they will be lost!'
-        );
-        console.error(
-          `TodoTxt unable to cache data in localStorage due to: ${e}`
-        );
-        this.cacheError++;
-      }
+      alert(
+        'WARNING: unable to store tasks; save tasks before closing the browser or they will be lost!'
+      );
+      console.error(
+        `TodoTxt unable to cache data in localStorage due to: ${e}`
+      );
     }
   }
 
@@ -104,11 +95,10 @@ export class TodoTxtVault {
         }
       }
     } catch (e) {
-      if (this.cacheError == 0) {
-        console.info(
-          `TodoTxt unable to load cache from localStorage due to: ${e}`
-        );
-      }
+      alert('WARNING: unable to load tasks')
+      console.error(
+        `TodoTxt unable to load cache from localStorage due to: ${e}`
+      );
     }
   }
 }

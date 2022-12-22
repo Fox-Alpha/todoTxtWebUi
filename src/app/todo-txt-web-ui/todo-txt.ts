@@ -22,6 +22,7 @@ export class TodoTxt {
     return taskArray;
   }
 
+  // FIXME priority filter not working
   getFilteredTaskArray(filterStr: string) {
     var filteredTasks = this.getSortedTaskArray();
     if (filterStr && filterStr !== '') {
