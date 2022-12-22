@@ -5,7 +5,7 @@ export interface TodoTxtTask {
     completedDate?: string;
     projects?: string[];
     contexts?: string[];
-    metadatas?: string[];
+    dueDate?: string;
     isActive?: boolean;
     text: string;
 }

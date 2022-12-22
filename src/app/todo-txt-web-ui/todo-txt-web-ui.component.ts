@@ -20,9 +20,10 @@ export class TodoTxtWebUiComponent implements OnInit {
   isDirty: boolean;
   showClosed: boolean;
   downloadUrl: SafeUrl;
-  filterStr: string;
   editingTaskId: number;
   isAddingNew: boolean;
+  filterUpdateHandler: number;
+  filterInitialStr: string = '';
 
   constructor(
     private sanitiser: DomSanitizer,
@@ -36,6 +37,7 @@ export class TodoTxtWebUiComponent implements OnInit {
 
   async ngOnInit() {
     await this.todo.init();
+    this.filterInitialStr = this.todo.getFilterString();
   }
 
   async toggleShowClosed(): Promise<void> {
@@ -108,12 +110,16 @@ export class TodoTxtWebUiComponent implements OnInit {
   }
 
   async keyup_UpdateFilter(filter: string): Promise<void> {
-    this.filterStr = filter;
+    clearTimeout(this.filterUpdateHandler);
+    // @ts-ignore
+    this.filterUpdateHandler = setTimeout(async () => {
+      await this.todo.updateFilter(filter);
+    }, 500);
   }
 
   async click_ClearFilter(event: any): Promise<void> {
-    this.filterStr = null;
     event.target.value = undefined;
+    this.todo.clearFilter();
   }
 
   async click_MarkComplete(id: number): Promise<void> {
@@ -176,7 +182,7 @@ export class TodoTxtWebUiComponent implements OnInit {
   }
 
   getTasks(): TodoTxtTask[] {
-    let tasks: TodoTxtTask[] = this.todo.getFilteredTaskArray(this.filterStr);
+    let tasks: TodoTxtTask[] = this.todo.getFilteredTaskArray();
     if (!this.todo.getConfig().showClosed) {
       let active: TodoTxtTask[] = [];
       for (var i = 0; i < tasks.length; i++) {
@@ -195,15 +201,13 @@ export class TodoTxtWebUiComponent implements OnInit {
     text = TodoTxtUtils.htmlEncode(text);
 
     // markup priority
-    let priCls: string = this.getDisplayClassForTask(task);
+    const priCls: string = this.getDisplayClassForTask(task);
     text = text.replace(
       task.priority,
       '<span class="' + priCls + '"><b>' + task.priority + '</b></span>'
     );
 
-    // markup projects
-    let projects: string[] = task.projects;
-    projects.forEach((project) => {
+    task.projects.forEach((project) => {
       const prj = `+${project}`;
       text = text.replace(
         prj, 
@@ -211,9 +215,7 @@ export class TodoTxtWebUiComponent implements OnInit {
       );
     });
 
-    // markup contexts
-    let contexts: string[] = task.contexts;
-    contexts.forEach((context) => {
+    task.contexts.forEach((context) => {
       const ctx = `@${context}`;
       text = text.replace(
         ctx,
@@ -221,19 +223,23 @@ export class TodoTxtWebUiComponent implements OnInit {
       );
     });
 
+    if (task.dueDate) {
+      text = text.replace(new RegExp(/t:([0-9]{4}-[0-9]{2}-[0-9]{2})/), `<span class="text-success">${"$&"}</span>`)
+    }
+
     return this.sanitiser.bypassSecurityTrustHtml(text);
   }
 
   getDisplayClassForTask(task: TodoTxtTask): string {
     let cls: string = '';
     if (task.priority !== null && task.isActive) {
-      if (task.priority === '(A)') {
+      if (task.priority === 'A') {
         cls += ' text-danger';
       }
-      if (task.priority === '(B)') {
+      if (task.priority === 'B') {
         cls += ' text-warning';
       }
-      if (task.priority === '(C)') {
+      if (task.priority === 'C') {
         cls += ' text-primary';
       }
     }
