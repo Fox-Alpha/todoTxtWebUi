@@ -10,4 +10,4 @@ RUN npm i @angular/cli
 
 RUN npm run build:prod
 
-CMD ["node_modules/.bin/ng", "serve", "--host", "0.0.0.0"]
+CMD ["node_modules/.bin/ng", "serve", "--host", "0.0.0.0", "--configuration", "production"]
