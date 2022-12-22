@@ -1,3 +1,6 @@
+<button class="btn btn-lg btn-primary rounded-pill position-fixed bottom-0 end-0 translate-middle" (click)="click_AddTask()" aria-label="add task" id="addtask_button" data-bs-toggle="tooltip" data-bs-placement="top" title="New task">
+  <i class="bi bi-clipboard-plus"> </i><span class="fw-light d-none d-lg-inline"> New Task</span>
+</button>
 <div class="container py-1">
     <div class="row">
         <div class="col-md-9">
@@ -6,9 +9,6 @@
                     <div class="btn-group btn-group-justified">
                         <button class="file-upload btn btn-secondary btn-lg" (click)="click_OpenToDoFile()" aria-label="upload file" data-bs-toggle="tooltip" data-bs-placement="top" title="Import todo.txt file">
                             <i class="bi bi-cloud-upload"> </i><span class="fw-light d-none d-lg-inline">Import todo.txt</span>
-                        </button>
-                        <button class="btn btn-lg btn-primary" (click)="click_AddTask()" aria-label="add task" id="addtask_button" data-bs-toggle="tooltip" data-bs-placement="top" title="New task">
-                            <i class="bi bi-clipboard-plus"> </i><span class="fw-light d-none d-lg-inline"> New Task</span>
                         </button>
                     </div>
                 </div>
@@ -28,6 +28,14 @@
                 <div *ngIf="editingTaskId == t.id">
                     <input id="textarea_{{t.id}}" class="textarea btn-lg pt-1 text-start w-100" [value]="t.text" (keydown.enter)="click_SaveTaskEdit(t.id)" (keydown.esc)="click_CancelTaskEdit()">
                     <div class="btn-group d-flex flex-wrap pt-1" role="group">
+                      <select id="priority_{{t.id}}" class="btn btn-secondary" (change)="click_PriorityChangedForExisting(t.id)" aria-label="Chose priority" #prioritySelectNew>
+                          <option value="" [selected]="t.priority === ''">No priority</option>
+                          <option value="(A)" [selected]="t.priority === 'A'">A</option>
+                          <option value="(B)" [selected]="t.priority === 'B'">B</option>
+                          <option value="(C)" [selected]="t.priority === 'C'">C</option>
+                          <option value="(D)" [selected]="t.priority === 'D'">D</option>
+                          <option value="(E)" [selected]="t.priority === 'E'">E</option>
+                        </select>
                         <button class="btn btn-success" (click)="click_SaveTaskEdit(t.id)" aria-label="save changes" data-bs-toggle="tooltip" data-bs-placement="top" title="Save Changes (Enter)" data-bs-toggle="tooltip" data-bs-placement="top" title="Save changes"><i class="bi bi-check"></i><span class="fw-light d-none d-lg-inline">Update Task</span></button>
                         <button class="btn btn-warning" (click)="click_CancelTaskEdit()" aria-label="discard changes" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard Changes (Esc)" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard changes"><i class="bi bi-x"></i><span class="fw-light d-none d-lg-inline"> Discard Changes</span></button>
                         <input id="date_{{t.id}}" class="btn btn-danger" type="date" (change)="click_DateChangedForExisting(t.id)" aria-label="schedule task" data-bs-toggle="tooltip" data-bs-placement="top" title="Schedule Task" data-bs-toggle="tooltip" data-bs-placement="top" [value]="t.dueDate">
@@ -37,6 +45,14 @@
             <div *ngIf="isAddingNew">
                 <input id="textarea_new" class="textarea btn-lg pt-1 text-start w-100" [value]="newTaskInitialInput" (keydown.enter)="click_SaveNewTask(newTaskInput.value)" (keydown.esc)="click_CancelTaskEdit()" #newTaskInput>
                 <div class="btn-group d-flex flex-wrap pt-1" role="group">
+                    <select class="btn btn-secondary" (change)="click_PriorityChangedForNew(prioritySelectNew.value)" aria-label="Chose priority" #prioritySelectNew>
+                      <option value="" selected>No priority</option>
+                      <option value="(A)">A</option>
+                      <option value="(B)">B</option>
+                      <option value="(C)">C</option>
+                      <option value="(D)">D</option>
+                      <option value="(E)">E</option>
+                    </select>
                     <button class="btn btn-success" (click)="click_SaveNewTask(newTaskInput.value)" aria-label="save new task" data-bs-toggle="tooltip" data-bs-placement="top" title="Save Changes (Enter)" data-bs-toggle="tooltip" data-bs-placement="top" title="Save changes"><i class="bi bi-check"></i><span class="fw-light d-none d-lg-inline">Save Task</span></button>
                     <button class="btn btn-warning" (click)="click_CancelTaskEdit()" aria-label="discard changes" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard Changes (Esc)" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard changes"><i class="bi bi-x"></i><span class="fw-light d-none d-lg-inline"> Discard Changes</span></button>
                     <input id="date_new" class="btn btn-danger" type="date" (change)="click_DateChangedForNew(newDateInput.value)" aria-label="schedule task" data-bs-toggle="tooltip" data-bs-placement="top" title="Schedule Task" data-bs-toggle="tooltip" data-bs-placement="top" #newDateInput>
