@@ -5,20 +5,11 @@
                 <div class="d-flex flex-column flex-grow-1">
                     <div class="btn-group btn-group-justified">
                         <button class="file-upload btn btn-secondary btn-lg" (click)="click_OpenToDoFile()" aria-label="upload file" data-bs-toggle="tooltip" data-bs-placement="top" title="Import todo.txt file">
-                            <i class="bi bi-cloud-upload"> </i><span class="fw-light d-none d-lg-inline"> {{fileName || 'Import todo.txt File'}}</span>
+                            <i class="bi bi-cloud-upload"> </i><span class="fw-light d-none d-lg-inline">Import todo.txt</span>
                         </button>
                         <button class="btn btn-lg btn-primary" (click)="click_AddTask()" aria-label="add task" id="addtask_button" data-bs-toggle="tooltip" data-bs-placement="top" title="New task">
                             <i class="bi bi-clipboard-plus"> </i><span class="fw-light d-none d-lg-inline"> New Task</span>
                         </button>
-                        <button class="btn btn-lg {{(isDirty) ? 'btn-warning' : 'btn-success'}}" (click)="click_SaveTasks()" aria-label="save tasks to file" data-bs-toggle="tooltip" data-bs-placement="top" title="Export tasks">
-                            <i class="bi bi-save"> </i><span class="fw-light d-none d-lg-inline"> Export Tasks</span>
-                        </button>
-                    </div>
-                </div>
-                <div class="d-flex flex-column p-2">
-                    <div class="form-check form-switch" data-bs-toggle="tooltip" data-bs-placement="top" title="Show closed tasks">
-                        <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" (change)="toggleShowClosed()" [checked]="showClosed">
-                        <label class="form-check-label d-none d-lg-inline" for="flexSwitchCheckDefault">{{(showClosed) ? 'Hide Closed Tasks' : 'Show Closed Tasks'}}</label>
                     </div>
                 </div>
             </div>
@@ -31,17 +22,23 @@
             </div>
             <div *ngFor="let t of getTasks()">
                 <div *ngIf="editingTaskId != t.id" class="btn-group d-flex flex-nowrap pt-1" role="group">
-                    <button *ngIf="t.isActive" class="col-xs-2 btn btn-lg btn-light" (click)="click_MarkComplete(t.id)" aria-label="mark as complete" data-bs-toggle="tooltip" data-bs-placement="top" title="Mark complete"><i class="bi bi-circle"></i></button>
-                    <button *ngIf="!t.isActive" class="col-xs-2 btn btn-lg btn-success" (click)="click_MarkActive(t.id)" aria-label="mark as incomplete" data-bs-toggle="tooltip" data-bs-placement="top" title="Unmark / Make active"><i class="bit bi-check-circle"></i></button>
-                    <button class="btn btn-lg {{(t.isActive) ? 'btn-light' : 'btn-outline-success'}} text-start w-100" (click)="click_StartEditTask(t.id)" aria-label="edit task" [innerHTML]="getMarkupForTask(t.text, t.id)" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit task"></button>
+                    <button class="col-xs-2 btn btn-lg btn-light" (click)="click_DeleteTask(t.id)" aria-label="delete task" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Task"><i class="bit bi-circle"></i></button>
+                    <button class="btn btn-lg btn-light text-start w-100" (click)="click_StartEditTask(t.id)" aria-label="edit task" [innerHTML]="getMarkupForTask(t.text, t.id)" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit task"></button>
                 </div>
                 <div *ngIf="editingTaskId == t.id">
-                    <div id="textarea_{{t.id}}" tabindex="0" contenteditable="true" class="textarea btn-lg pt-1 text-start w-100" [innerHTML]="getMarkupForTask(t.text, t.id)" (keydown.enter)="click_SaveTaskEdit(t.id)" (keydown.esc)="click_CancelTaskEdit()"></div>
+                    <div id="textarea_{{t.id}}" tabindex="0" contenteditable="true" class="textarea btn-lg pt-1 text-start w-100" [innerHTML]="t.text" (keydown.enter)="click_SaveTaskEdit(t.id)" (keydown.esc)="click_CancelTaskEdit()"></div>
                     <div class="btn-group d-flex flex-wrap pt-1" role="group">
-                        <button class="btn btn-success" (click)="click_SaveTaskEdit(t.id)" aria-label="save changes" data-bs-toggle="tooltip" data-bs-placement="top" title="Save Changes (Enter)" data-bs-toggle="tooltip" data-bs-placement="top" title="Save changes"><i class="bi bi-check"></i><span class="fw-light d-none d-lg-inline"> {{(isAddingNew) ? 'Save' : 'Update'}} Task</span></button>
+                        <button class="btn btn-success" (click)="click_SaveTaskEdit(t.id)" aria-label="save changes" data-bs-toggle="tooltip" data-bs-placement="top" title="Save Changes (Enter)" data-bs-toggle="tooltip" data-bs-placement="top" title="Save changes"><i class="bi bi-check"></i><span class="fw-light d-none d-lg-inline">Update Task</span></button>
                         <button class="btn btn-warning" (click)="click_CancelTaskEdit()" aria-label="discard changes" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard Changes (Esc)" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard changes"><i class="bi bi-x"></i><span class="fw-light d-none d-lg-inline"> Discard Changes</span></button>
-                        <button *ngIf="!isAddingNew" class="btn btn-danger" (click)="click_DeleteTask(t.id)" aria-label="delete task" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete task"><i class="bi bi-trash"></i><span class="fw-light d-none d-lg-inline"> Delete Task</span></button>
+                        <input id="date_{{t.id}}" class="btn btn-danger" type="date" (change)="click_DateChanged(t.id)" aria-label="schedule task" data-bs-toggle="tooltip" data-bs-placement="top" title="Schedule Task" data-bs-toggle="tooltip" data-bs-placement="top" [value]="t.dueDate">
                     </div>
+                </div>
+            </div>
+            <div *ngIf="isAddingNew">
+                <div id="textarea_new" tabindex="0" contenteditable="true" class="textarea btn-lg pt-1 text-start w-100" [innerHTML]="newTaskInitialInput" (keydown.enter)="click_SaveNewTask(newTaskInput.innerHTML)" (keydown.esc)="click_CancelTaskEdit()" #newTaskInput></div>
+                <div class="btn-group d-flex flex-wrap pt-1" role="group">
+                    <button class="btn btn-success" (click)="click_SaveNewTask(newTaskInput.innerHTML)" aria-label="save new task" data-bs-toggle="tooltip" data-bs-placement="top" title="Save Changes (Enter)" data-bs-toggle="tooltip" data-bs-placement="top" title="Save changes"><i class="bi bi-check"></i><span class="fw-light d-none d-lg-inline">Save Task</span></button>
+                    <button class="btn btn-warning" (click)="click_CancelTaskEdit()" aria-label="discard changes" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard Changes (Esc)" data-bs-toggle="tooltip" data-bs-placement="top" title="Discard changes"><i class="bi bi-x"></i><span class="fw-light d-none d-lg-inline"> Discard Changes</span></button>
                 </div>
             </div>
         </div>
